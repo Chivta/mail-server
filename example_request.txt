@@ -1,0 +1,5 @@
+POST /mail HTTP/1.1
+Host: 
+Content-Length: 60
+
+{"str":"str","arr":["arr1","arr2"],"dict":{"dict1":"dict1"}}
