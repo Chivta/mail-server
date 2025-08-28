@@ -1,0 +1,9 @@
+{
+    "from":"example@example.com",
+    "to":"example@example.com",
+    "date":"2025-08-18T13:15:00Z",
+    "subject":"blablabla",
+    "body":"blablabla",
+    "sent":false,
+    "status":""
+}

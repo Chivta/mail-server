@@ -1,38 +1,34 @@
 package main
 
 import (
-	"encoding/json"
 	"log"
+	"mail-server/db"
+	"mail-server/handlers"
 	"net/http"
+	"time"
 )
 
-type MailHandler struct{}
+// func readExistingEmails(DB *db.DB){
+// 	time.Sleep(10 * time.Second)
 
-func (h *MailHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Printf("Connection from %v \n", r.RemoteAddr)
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		log.Printf("Status Method Not Allowed\n")
-		return
-	}
-	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1 MB
+// 	res,err:= DB.GetUnsentEmails(10)
 
-	decoder := json.NewDecoder(r.Body)
+// 	if err!=nil{
+// 		log.Println(err)
+// 		return
+// 	}
 
-	var message map[string]any
-	if err := decoder.Decode(&message); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		log.Println(err)
-		return
-	}
-
-	log.Println(message)
-
-	w.WriteHeader(http.StatusOK)
-}
+// 	log.Println(res)
+// }
 
 func main() {
-	http.Handle("/mail", &MailHandler{})
+	database, err := db.NewDBConnection()
+	if err!=nil{
+		log.Fatal(err)
+	}
+
+	http.Handle("/mail", &handlers.MailHandler{DB: database})
+	// go readExistingEmails(database)
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
