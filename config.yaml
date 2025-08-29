@@ -1,0 +1,9 @@
+server:
+  address: 127.0.0.1
+  port: 8080
+  log_file: "log"
+database:
+  host: localhost
+  name: db_name
+  user: db_user
+  port: 5432
