@@ -2,60 +2,39 @@ package db
 
 import (
 	"database/sql"
-	_ "log"
-	_ "modernc.org/sqlite"
-	"os"
-	"path/filepath"
+	"fmt"
+	"time"
+	_ "github.com/lib/pq"
 )
 
-func NewDBConnection() (*DB, error) {
-	projectDir := filepath.Dir(os.Args[0])
-	dataDir := filepath.Join(projectDir, "data")
-	if _, err := os.Stat(dataDir); os.IsNotExist(err) {
-		err = os.Mkdir(dataDir, 0755)
-		if err != nil {
-			return nil, err
-		}
-	}
 
-	db, err := sql.Open("sqlite", "data/db.sqlite")
+func NewDBConnection(host, user, password, dbname string, port int) (*DB, error) {
+	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+    	host, port, user, password, dbname)
+
+
+	db, err := sql.Open("postgres", psqlInfo)
 
 	if err != nil {
 		return nil, err
 	}
-	// _, err = db.Query(`DROP TABLE IF EXISTS email;`)
-	// if err!= nil{
-	// 	return nil,err
-	// }
-	_, err = db.Query(`
-	CREATE TABLE IF NOT EXISTS 
-		email(
-			id INTEGER PRIMARY KEY,
-			"from" TEXT NOT NULL,
-			"to" TEXT NOT NULL,
-			date TEXT NOT NULL,
-			subject TEXT NOT NULL,
-			body TEXT NOT NULL,
-			sent BOOLEAN NOT NULL,
-			status TEXT NOT NULL
-		);
-	`)
-	if err!= nil{
-		return nil,err
+	err = db.Ping()
+	if err != nil {
+		return nil, err
 	}
 
 	return &DB{db}, nil
 }
 
 type Email struct {
-    ID      int   	`json:"id"`
-    From    string	`json:"from"`
-    To      string	`json:"to"`
-    Date    string	`json:"date"`
-    Subject string	`json:"subject"`
-    Body    string	`json:"body"`
-	Sent 	bool	`json:"sent"`
-	Status 	string	`json:"status"`
+    ID      int   		`json:"id"`
+    From    string		`json:"from"`
+    To      string		`json:"to"`
+    Date    time.Time	`json:"date"`
+    Subject string		`json:"subject"`
+    Body    string		`json:"body"`
+	Sent 	bool		`json:"sent"`
+	Status 	string		`json:"status"`
 }
 
 type DB struct{
@@ -64,7 +43,7 @@ type DB struct{
 
 func (db *DB) WriteEmail(email Email) error {
 	_, err := db.conn.Query(`
-		INSERT INTO email("from", "to", date, subject, body, sent, status) VALUES(?,?,?,?,?,?,?);`,
+		INSERT INTO email("from", "to", date, subject, body, sent, status) VALUES ($1, $2, $3, $4, $5, $6, $7);`,
 		email.From, email.To, email.Date, email.Subject, email.Body, email.Sent, email.Status)
 	if err!= nil{
 		return err
@@ -76,7 +55,7 @@ func (db *DB) GetUnsentEmails(limit int) ([]Email,error){
 	rows, err := db.conn.Query(`
 		SELECT * FROM email
 		WHERE sent = false
-		LIMIT ?;`,
+		LIMIT $1;`,
 		limit)
 	if err!= nil{
 		return nil, err
