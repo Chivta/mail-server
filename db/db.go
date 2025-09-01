@@ -27,14 +27,16 @@ func NewDBConnection(host, user, password, dbname string, port int) (*DB, error)
 }
 
 type Email struct {
-    ID      int   		`json:"id"`
-    From    string		`json:"from"`
-    To      string		`json:"to"`
-    Date    time.Time	`json:"date"`
-    Subject string		`json:"subject"`
-    Body    string		`json:"body"`
-	Sent 	bool		`json:"sent"`
-	Status 	string		`json:"status"`
+    ID      	int   		`json:"id"`
+    From    	string		`json:"from"`
+    To      	string		`json:"to"`
+    Date    	time.Time	`json:"date"`
+    Subject 	string		`json:"subject"`
+	Reason		string		`json:"reason"`
+    Body    	string		`json:"body"`
+	RegistrarId	string 		`json:"registrar_id"`
+	Sent 		bool		`json:"sent"`
+	Status 		string		`json:"status"`
 }
 
 type DB struct{
@@ -43,20 +45,55 @@ type DB struct{
 
 func (db *DB) WriteEmail(email Email) error {
 	_, err := db.conn.Query(`
-		INSERT INTO email("from", "to", date, subject, body, sent, status) VALUES ($1, $2, $3, $4, $5, $6, $7);`,
-		email.From, email.To, email.Date, email.Subject, email.Body, email.Sent, email.Status)
+		INSERT INTO email(
+			"from", 
+			"to", 
+			date, 
+			subject, 
+			reason,
+			body,
+			redistrarid, 
+			sent, 
+			status) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);`,
+			email.From, 
+			email.To, 
+			email.Date, 
+			email.Subject, 
+			email.Reason,
+			email.Body, 
+			email.RegistrarId,
+			email.Sent, 
+			email.Status,
+		)
 	if err!= nil{
 		return err
 	}
 	return nil
 }
 
-func (db *DB) GetUnsentEmails(limit int) ([]Email,error){
+func (db *DB) GetEmails(limit, offset int, search string) ([]Email,error){
+	if search == "" {
+		search = "%" // match all
+	} else {
+		search = "%" + search + "%"
+	}
+
 	rows, err := db.conn.Query(`
-		SELECT * FROM email
-		WHERE sent = false
-		LIMIT $1;`,
-		limit)
+		SELECT *
+		FROM email
+		WHERE (
+			"from" || ' ' || 
+			"to" || ' ' || 
+			subject || ' ' || 
+			reason || ' ' || 
+			body || ' ' || 
+			redistrarid || ' ' || 
+			status)
+			ILIKE $1
+		LIMIT $2
+		OFFSET $3;
+		`, search, limit, offset)
 	if err!= nil{
 		return nil, err
 	}
@@ -64,8 +101,31 @@ func (db *DB) GetUnsentEmails(limit int) ([]Email,error){
 	var emails []Email
 	var email Email
 	for rows.Next(){
-		
-		err = rows.Scan(&email.ID,&email.From,&email.To,&email.Date,&email.Subject,&email.Body,&email.Sent,&email.Status)
+		err = rows.Scan(&email.ID,&email.From,&email.To,&email.Date,&email.Subject,&email.Reason,&email.Body,&email.RegistrarId,&email.Sent,&email.Status)
+		if err!=nil{
+			return nil, err
+		}
+		emails = append(emails, email)
+	}
+
+	return emails, nil
+}
+
+func (db *DB) GetUnsentEmails(limit, offset string) ([]Email,error){
+	rows, err := db.conn.Query(`
+		SELECT * FROM email
+		WHERE sent = false
+		LIMIT $1
+		OFFSET $2;`,
+		limit,offset)
+	if err!= nil{
+		return nil, err
+	}
+	
+	var emails []Email
+	var email Email
+	for rows.Next(){
+		err = rows.Scan(&email.ID,&email.From,&email.To,&email.Date,&email.Subject,&email.Reason,&email.Body,&email.RegistrarId,&email.Sent,&email.Status)
 		if err!=nil{
 			return nil, err
 		}

@@ -1,0 +1,81 @@
+{{ define "emails" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Email List</title>
+    <style>
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background: #f0f0f0; }
+        tr:nth-child(even) { background: #fafafa; }
+        .highlight { background-color: yellow; }
+        form { margin-bottom: 1em; }
+        .pagination { margin: 1em 0; }
+        .pagination a { margin: 0 5px; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <h1>Email Records</h1>
+
+    <!-- Search and limit form -->
+    <form method="get" action="">
+        <input type="text" name="search" placeholder="Search" value="{{ .Search }}">
+        <select name="limit">
+            {{ $limits := slice 10 25 50 100 }}
+            {{ range $limits }}
+                <option value="{{ . }}" {{ if eq $.Limit (printf "%d" .) }}selected{{ end }}>{{ . }}</option>
+            {{ end }}
+        </select>
+        <button type="submit">Search</button>
+    </form>
+
+    <!-- Pagination arrows -->
+    <div class="pagination">
+        {{ $prev := subtract $.OffsetInt $.LimitInt }}
+        {{ if ge $prev 0 }}
+            <a href="?search={{ .Search }}&limit={{ .Limit }}&offset={{ $prev }}">&#8592; Prev</a>
+        {{ end }}
+        <span>Page {{ add (div $.OffsetInt $.LimitInt) 1 }}</span>
+        <a href="?search={{ .Search }}&limit={{ .Limit }}&offset={{ add $.OffsetInt $.LimitInt }}">Next &#8594;</a>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>From</th>
+                <th>To</th>
+                <th>Date</th>
+                <th>Subject</th>
+                <th>Reason</th>
+                <th>Body</th>
+                <th>Registrar ID</th>
+                <th>Sent</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+        {{ range .Emails }}
+            <tr>
+                <td>{{ .ID }}</td>
+                <td>{{ highlight .From $.Search }}</td>
+                <td>{{ highlight .To $.Search }}</td>
+                <td>{{ formatDate .Date }}</td>
+                <td>{{ highlight .Subject $.Search }}</td>
+                <td>{{ highlight .Reason $.Search }}</td>
+                <td>{{ highlight .Body $.Search }}</td>
+                <td>{{ highlight .RegistrarId $.Search }}</td>
+                <td>{{ if .Sent }}Yes{{ else }}No{{ end }}</td>
+                <td>{{ highlight .Status $.Search }}</td>
+            </tr>
+        {{ else }}
+            <tr>
+                <td colspan="10">No emails found.</td>
+            </tr>
+        {{ end }}
+        </tbody>
+    </table>
+</body>
+</html>
+{{ end }}

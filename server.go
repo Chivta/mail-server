@@ -65,6 +65,11 @@ func main() {
 	}
 
 	http.Handle("/mail", &handlers.MailHandler{DB: database})
+	table_handler,err := handlers.GetTableHandler(database)
+	if err!= nil{
+		log.Fatal(err)
+	}
+	http.Handle("/table", &table_handler)
 	
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d",cfg.Server.Port), nil))
 }
