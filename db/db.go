@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"time"
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 )
 
 
@@ -42,6 +42,20 @@ type Email struct {
 type DB struct{
 	conn *sql.DB
 } 
+
+func (db *DB) MarkEmailsSent(ids []int) error {
+    if len(ids) == 0 {
+        return nil 
+    }
+
+    query := `UPDATE email SET sent = true WHERE id = ANY($1);`
+
+    _, err := db.conn.Exec(query, pq.Array(ids))
+    if err != nil {
+        return err
+    }
+    return nil
+}
 
 func (db *DB) WriteEmail(email Email) error {
 	_, err := db.conn.Query(`
@@ -111,7 +125,7 @@ func (db *DB) GetEmails(limit, offset int, search string) ([]Email,error){
 	return emails, nil
 }
 
-func (db *DB) GetUnsentEmails(limit, offset string) ([]Email,error){
+func (db *DB) GetUnsentEmails(limit, offset int) ([]Email,error){
 	rows, err := db.conn.Query(`
 		SELECT * FROM email
 		WHERE sent = false
