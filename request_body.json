@@ -1,9 +1,9 @@
 {
-    "from":"example@example.com",
-    "to":"example@example.com",
+    "from":"arvlas@localhost",
+    "to":"arvlas@localhost",
     "date":"2025-08-18T13:15:00Z",
-    "subject":"example",
-    "reason":"example",
-    "body":"example",
+    "subject":"ABOBA SUBJECT",
+    "reason":"ABOBA REASON",
+    "body":"ABOBA BODY",
     "registrar_id": "123"
 }

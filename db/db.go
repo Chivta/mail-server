@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"time"
+	"strings"
 	"github.com/lib/pq"
 )
 
@@ -66,7 +67,7 @@ func (db *DB) WriteEmail(email Email) error {
 			subject, 
 			reason,
 			body,
-			redistrarid, 
+			registrarid, 
 			sent, 
 			status) 
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);`,
@@ -86,37 +87,55 @@ func (db *DB) WriteEmail(email Email) error {
 	return nil
 }
 
-func (db *DB) GetEmails(limit, offset int, search string) ([]Email,error){
+func (db *DB) GetEmails(limit, offset int, search string, selectedColumns []string) ([]Email, error) {
 	if search == "" {
 		search = "%" // match all
 	} else {
 		search = "%" + search + "%"
 	}
 
-	rows, err := db.conn.Query(`
+	// Default to all searchable columns if none selected
+	allColumns := []string{"from", "to", "subject", "reason", "body", "registrarid", "status"}
+	if len(selectedColumns) == 0 {
+		selectedColumns = allColumns
+	}
+
+	// Build WHERE conditions dynamically
+	var conditions []string
+	var args []interface{}
+	for i, col := range selectedColumns {
+		conditions = append(conditions, fmt.Sprintf(`"%s" ILIKE $1`, col))
+		if i == 0 {
+			args = append(args, search)
+		}
+	}
+	whereClause := strings.Join(conditions, " OR ")
+
+	// Query
+	query := fmt.Sprintf(`
 		SELECT *
 		FROM email
-		WHERE (
-			"from" || ' ' || 
-			"to" || ' ' || 
-			subject || ' ' || 
-			reason || ' ' || 
-			body || ' ' || 
-			redistrarid || ' ' || 
-			status)
-			ILIKE $1
-		LIMIT $2
-		OFFSET $3;
-		`, search, limit, offset)
-	if err!= nil{
+		WHERE %s
+		LIMIT $2 OFFSET $3;
+	`, whereClause)
+
+	args = append(args, limit, offset)
+
+	rows, err := db.conn.Query(query, args...)
+	if err != nil {
 		return nil, err
 	}
-	
+	defer rows.Close()
+
 	var emails []Email
-	var email Email
-	for rows.Next(){
-		err = rows.Scan(&email.ID,&email.From,&email.To,&email.Date,&email.Subject,&email.Reason,&email.Body,&email.RegistrarId,&email.Sent,&email.Status)
-		if err!=nil{
+	for rows.Next() {
+		var email Email
+		err = rows.Scan(
+			&email.ID, &email.From, &email.To, &email.Date,
+			&email.Subject, &email.Reason, &email.Body,
+			&email.RegistrarId, &email.Sent, &email.Status,
+		)
+		if err != nil {
 			return nil, err
 		}
 		emails = append(emails, email)
@@ -124,6 +143,7 @@ func (db *DB) GetEmails(limit, offset int, search string) ([]Email,error){
 
 	return emails, nil
 }
+
 
 func (db *DB) GetUnsentEmails(limit, offset int) ([]Email,error){
 	rows, err := db.conn.Query(`

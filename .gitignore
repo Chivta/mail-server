@@ -29,6 +29,7 @@ go.work.sum
 
 config.yaml
 server
+log
 
 # Editor/IDE
 # .idea/

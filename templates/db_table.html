@@ -18,26 +18,41 @@
 <body>
     <h1>Email Records</h1>
 
-    <!-- Search and limit form -->
+    <!-- Search, Limit, and Column Selection form -->
     <form method="get" action="">
         <input type="text" name="search" placeholder="Search" value="{{ .Search }}">
         <select name="limit">
             {{ $limits := slice 10 25 50 100 }}
             {{ range $limits }}
-                <option value="{{ . }}" {{ if eq $.Limit (printf "%d" .) }}selected{{ end }}>{{ . }}</option>
+                <option value="{{ . }}" {{ if eq (printf "%d" $.Limit) (printf "%d" .) }}selected{{ end }}>{{ . }}</option>
             {{ end }}
         </select>
+
+    <fieldset>
+        <legend>Search in columns:</legend>
+        {{ $columns := sliceStr "From" "To" "Date" "Subject" "Reason" "Body" "RegistrarId" "Sent" "Status" }}
+        {{ range $col := $columns }}
+        <label>
+            <input type="checkbox" name="columns" value="{{ $col }}"
+                {{ if (inSlice $col $.SelectedColumns) }}checked{{ end }}>
+            {{ $col }}
+        </label>
+        {{ end }}
+    </fieldset>
+
+
         <button type="submit">Search</button>
     </form>
 
     <!-- Pagination arrows -->
     <div class="pagination">
-        {{ $prev := subtract $.OffsetInt $.LimitInt }}
+        {{ $prev := subtract $.Offset $.Limit }}
+        {{ $columnsParam := join $.SelectedColumns "&columns=" }}
         {{ if ge $prev 0 }}
-            <a href="?search={{ .Search }}&limit={{ .Limit }}&offset={{ $prev }}">&#8592; Prev</a>
+            <a href="?search={{ .Search }}&limit={{ printf "%d" .Limit }}&offset={{ printf "%d" $prev }}{{ if $.SelectedColumns }}&columns={{ $columnsParam }}{{ end }}">&#8592; Prev</a>
         {{ end }}
-        <span>Page {{ add (div $.OffsetInt $.LimitInt) 1 }}</span>
-        <a href="?search={{ .Search }}&limit={{ .Limit }}&offset={{ add $.OffsetInt $.LimitInt }}">Next &#8594;</a>
+        <span>Page {{ add (div $.Offset $.Limit) 1 }}</span>
+        <a href="?search={{ .Search }}&limit={{ printf "%d" .Limit }}&offset={{ printf "%d" (add $.Offset $.Limit) }}{{ if $.SelectedColumns }}&columns={{ $columnsParam }}{{ end }}">Next &#8594;</a>
     </div>
 
     <table>
@@ -59,15 +74,15 @@
         {{ range .Emails }}
             <tr>
                 <td>{{ .ID }}</td>
-                <td>{{ highlight .From $.Search }}</td>
-                <td>{{ highlight .To $.Search }}</td>
-                <td>{{ formatDate .Date }}</td>
-                <td>{{ highlight .Subject $.Search }}</td>
-                <td>{{ highlight .Reason $.Search }}</td>
-                <td>{{ highlight .Body $.Search }}</td>
-                <td>{{ highlight .RegistrarId $.Search }}</td>
-                <td>{{ if .Sent }}Yes{{ else }}No{{ end }}</td>
-                <td>{{ highlight .Status $.Search }}</td>
+                <td>{{ if (inSlice "From" $.SelectedColumns) }}{{ highlight .From $.Search }}{{ else }}{{ .From }}{{ end }}</td>
+                <td>{{ if (inSlice "To" $.SelectedColumns) }}{{ highlight .To $.Search }}{{ else }}{{ .To }}{{ end }}</td>
+                <td>{{ if (inSlice "Date" $.SelectedColumns) }}{{ formatDate .Date }}{{ else }}{{ formatDate .Date }}{{ end }}</td>
+                <td>{{ if (inSlice "Subject" $.SelectedColumns) }}{{ highlight .Subject $.Search }}{{ else }}{{ .Subject }}{{ end }}</td>
+                <td>{{ if (inSlice "Reason" $.SelectedColumns) }}{{ highlight .Reason $.Search }}{{ else }}{{ .Reason }}{{ end }}</td>
+                <td>{{ if (inSlice "Body" $.SelectedColumns) }}{{ highlight .Body $.Search }}{{ else }}{{ .Body }}{{ end }}</td>
+                <td>{{ if (inSlice "RegistrarId" $.SelectedColumns) }}{{ highlight .RegistrarId $.Search }}{{ else }}{{ .RegistrarId }}{{ end }}</td>
+                <td>{{ if (inSlice "Sent" $.SelectedColumns) }}{{ highlight .Sent $.Search }}{{ else }}{{ .Sent }}{{ end }}</td>
+                <td>{{ if (inSlice "Status" $.SelectedColumns) }}{{ highlight .Status $.Search }}{{ else }}{{ .Status }}{{ end }}</td>
             </tr>
         {{ else }}
             <tr>
