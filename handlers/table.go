@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+    "regexp"
 )
 
 type TableHandler struct {
@@ -31,12 +32,6 @@ func GetTableHandler(db *db.DB) (TableHandler, error) {
 				text = v
 			case int:
 				text = fmt.Sprintf("%d", v)
-			case bool:
-				if v {
-					text = "Yes"
-				} else {
-					text = "No"
-				}
 			case time.Time:
 				text = v.Format("2006-01-02 15:04:05")
 			default:
@@ -46,12 +41,14 @@ func GetTableHandler(db *db.DB) (TableHandler, error) {
 				return template.HTML(html.EscapeString(text))
 			}
 			escaped := html.EscapeString(text)
-			highlighted := strings.ReplaceAll(
-				escaped,
-				search,
-				fmt.Sprintf(`<span class="highlight">%s</span>`, html.EscapeString(search)),
-			)
+
+			pattern := regexp.MustCompile(`(?i)` + regexp.QuoteMeta(search))
+
+			highlighted := pattern.ReplaceAllStringFunc(escaped, func(m string) string {
+        		return fmt.Sprintf(`<span class="highlight">%s</span>`, html.EscapeString(m))
+			})
 			return template.HTML(highlighted)
+
 		},
 		"add":      func(a, b int) int { return a + b },
 		"subtract": func(a, b int) int { return a - b },
@@ -91,7 +88,6 @@ type EmailPage struct {
 func (h *TableHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusNotImplemented)
-		log.Println("Status Method Not Allowed")
 		return
 	}
 
@@ -119,19 +115,17 @@ func (h *TableHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Extract selected columns from query
 	selectedColumns := query["columns"]
-
 	// Optional: Validate column names against a whitelist to prevent injection
 	allowed := map[string]bool{
-		"id": true, "from": true, "to": true, "subject": true, "reason": true,
+		"id": true, "from": true, "to": true, "subject": true,"date":true, "reason": true,
 		"body": true, "registrarid": true, "sent": true, "status": true,
 	}
 	var validColumns []string
 	for _, col := range selectedColumns {
-		if allowed[col] {
-			validColumns = append(validColumns, col)
+		if allowed[strings.ToLower(col)] {
+			validColumns = append(validColumns, strings.ToLower(col))
 		}
 	}
-
 	// Get emails using selected columns
 	content, err := h.DB.GetEmails(limit, offset, search, validColumns)
 	if err != nil {

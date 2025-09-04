@@ -3,8 +3,8 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"time"
 	"strings"
+	"time"
 	"github.com/lib/pq"
 )
 
@@ -95,21 +95,19 @@ func (db *DB) GetEmails(limit, offset int, search string, selectedColumns []stri
 	}
 
 	// Default to all searchable columns if none selected
-	allColumns := []string{"from", "to", "subject", "reason", "body", "registrarid", "status"}
+	allColumns := []string{"id", "from", "to", "subject", "reason", "body", "registrarid", "sent", "status"}
 	if len(selectedColumns) == 0 {
 		selectedColumns = allColumns
 	}
 
 	// Build WHERE conditions dynamically
 	var conditions []string
-	var args []interface{}
-	for i, col := range selectedColumns {
-		conditions = append(conditions, fmt.Sprintf(`"%s" ILIKE $1`, col))
-		if i == 0 {
-			args = append(args, search)
-		}
+	// var args []interface{}
+	for _, col := range selectedColumns {
+		conditions = append(conditions, fmt.Sprintf(`CAST("%s" AS TEXT) ILIKE $1`, col))
 	}
-	whereClause := strings.Join(conditions, " OR ")
+
+	searchQuery := strings.Join(conditions, " OR ")
 
 	// Query
 	query := fmt.Sprintf(`
@@ -117,11 +115,9 @@ func (db *DB) GetEmails(limit, offset int, search string, selectedColumns []stri
 		FROM email
 		WHERE %s
 		LIMIT $2 OFFSET $3;
-	`, whereClause)
+	`, searchQuery)
 
-	args = append(args, limit, offset)
-
-	rows, err := db.conn.Query(query, args...)
+	rows, err := db.conn.Query(query, search, limit, offset)
 	if err != nil {
 		return nil, err
 	}

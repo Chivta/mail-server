@@ -30,7 +30,7 @@
 
     <fieldset>
         <legend>Search in columns:</legend>
-        {{ $columns := sliceStr "From" "To" "Date" "Subject" "Reason" "Body" "RegistrarId" "Sent" "Status" }}
+        {{ $columns := sliceStr "ID" "From" "To" "Date" "Subject" "Reason" "Body" "RegistrarId" "Sent" "Status" }}
         {{ range $col := $columns }}
         <label>
             <input type="checkbox" name="columns" value="{{ $col }}"
@@ -73,10 +73,10 @@
         <tbody>
         {{ range .Emails }}
             <tr>
-                <td>{{ .ID }}</td>
+                <td>{{ if (inSlice "ID" $.SelectedColumns) }}{{ highlight .ID $.Search }}{{ else }}{{ .ID }}{{ end }}</td>
                 <td>{{ if (inSlice "From" $.SelectedColumns) }}{{ highlight .From $.Search }}{{ else }}{{ .From }}{{ end }}</td>
                 <td>{{ if (inSlice "To" $.SelectedColumns) }}{{ highlight .To $.Search }}{{ else }}{{ .To }}{{ end }}</td>
-                <td>{{ if (inSlice "Date" $.SelectedColumns) }}{{ formatDate .Date }}{{ else }}{{ formatDate .Date }}{{ end }}</td>
+                <td>{{ $formatted := formatDate .Date }}{{ if (inSlice "Date" $.SelectedColumns) }}{{ highlight $formatted $.Search }}{{ else }}{{ formatDate .Date }}{{ end }}</td>
                 <td>{{ if (inSlice "Subject" $.SelectedColumns) }}{{ highlight .Subject $.Search }}{{ else }}{{ .Subject }}{{ end }}</td>
                 <td>{{ if (inSlice "Reason" $.SelectedColumns) }}{{ highlight .Reason $.Search }}{{ else }}{{ .Reason }}{{ end }}</td>
                 <td>{{ if (inSlice "Body" $.SelectedColumns) }}{{ highlight .Body $.Search }}{{ else }}{{ .Body }}{{ end }}</td>
