@@ -28,7 +28,7 @@ func NewDBConnection(host, user, password, dbname string, port int) (*DB, error)
 }
 
 type Email struct {
-    ID      	int   		`json:"id"`
+    ID      	int   		
     From    	string		`json:"from"`
     To      	string		`json:"to"`
     Date    	time.Time	`json:"date"`
@@ -43,6 +43,17 @@ type Email struct {
 type DB struct{
 	conn *sql.DB
 } 
+
+func (db *DB) WriteEmailStatus(id, status string) error {
+	query := `UPDATE email WHERE id = $1 SET status = $2;`
+
+    _, err := db.conn.Exec(query, id, status)
+	if err != nil {
+        return err
+    }
+    return nil
+
+}
 
 func (db *DB) MarkEmailsSent(ids []int) error {
     if len(ids) == 0 {

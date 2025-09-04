@@ -45,37 +45,40 @@ func ParseConfig(path string) (*Config){
 	return &cfg
 }
 
-type EmailSender struct{
+// Sends unsent mails from db once in a delay
+// Parses logs from mail server and updates status in db
+type MailManager struct{
 	DB *db.DB
 	delay time.Duration
 	mailsAtOnce int
 }
 
-func (es *EmailSender) SendEmails(emails []db.Email) ([]int,error) {
-	c, err := smtp.Dial("localhost:25")
+func (es *MailManager) SendEmails(emails []db.Email) ([]int,error) {
+	client, err := smtp.Dial("localhost:25")
 	if err != nil {
 		return nil, err
 	}
-	defer c.Close()
+	defer client.Close()
 
 	var sent_emails_id []int
 	for _, email := range emails {
-		if err := c.Mail(email.From); err != nil {
+		if err := client.Mail(email.From); err != nil {
 			log.Println(err)
 			continue
 		}
-		if err := c.Rcpt(email.To); err != nil {
+		if err := client.Rcpt(email.To); err != nil {
 			log.Println(err)
 			continue
 		}
 
-		wc, err := c.Data()
+		wc, err := client.Data()
 		if err != nil {
 			log.Println(err)
 			continue
 		}
-		msg := fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\n\r\n%s",
-			email.From, email.To, email.Subject, email.Body)
+		msg := fmt.Sprintf(
+			"From: %s\r\nTo: %s\r\nSubject: %s\r\nX-Tracking-ID: %d\r\n\r\n%s",
+			email.From, email.To, email.Subject, email.ID, email.Body)
 		_, err = fmt.Fprint(wc, msg)
 		if err != nil {
 			log.Println(err)
@@ -84,11 +87,11 @@ func (es *EmailSender) SendEmails(emails []db.Email) ([]int,error) {
 		sent_emails_id = append(sent_emails_id, email.ID)
 		wc.Close()
 	}
-	c.Quit()
+	client.Quit()
 	return sent_emails_id, nil
 }
 
-func (es *EmailSender) Start() {
+func (es *MailManager) Start() {
 	for {
 		time.Sleep(es.delay)
 		log.Println("Sending emails")
@@ -144,7 +147,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	es := EmailSender{DB: database, delay: time.Duration(cfg.Server.SendMailDelay) * time.Second, mailsAtOnce: cfg.Server.SendMailsAtOnce}
+	es := MailManager{DB: database, delay: time.Duration(cfg.Server.SendMailDelay) * time.Second, mailsAtOnce: cfg.Server.SendMailsAtOnce}
 	go es.Start()
 
 	http.Handle("/mail", &handlers.MailHandler{DB: database})
