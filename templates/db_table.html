@@ -54,43 +54,58 @@
         <span>Page {{ add (div $.Offset $.Limit) 1 }}</span>
         <a href="?search={{ .Search }}&limit={{ printf "%d" .Limit }}&offset={{ printf "%d" (add $.Offset $.Limit) }}{{ if $.SelectedColumns }}&columns={{ $columnsParam }}{{ end }}">Next &#8594;</a>
     </div>
-
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>From</th>
-                <th>To</th>
-                <th>Date</th>
-                <th>Subject</th>
-                <th>Reason</th>
-                <th>Body</th>
-                <th>Registrar ID</th>
-                <th>Sent</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-        <tbody>
-        {{ range .Emails }}
-            <tr>
-                <td>{{ if (inSlice "ID" $.SelectedColumns) }}{{ highlight .ID $.Search }}{{ else }}{{ .ID }}{{ end }}</td>
-                <td>{{ if (inSlice "From" $.SelectedColumns) }}{{ highlight .From $.Search }}{{ else }}{{ .From }}{{ end }}</td>
-                <td>{{ if (inSlice "To" $.SelectedColumns) }}{{ highlight .To $.Search }}{{ else }}{{ .To }}{{ end }}</td>
-                <td>{{ $formatted := formatDate .Date }}{{ if (inSlice "Date" $.SelectedColumns) }}{{ highlight $formatted $.Search }}{{ else }}{{ formatDate .Date }}{{ end }}</td>
-                <td>{{ if (inSlice "Subject" $.SelectedColumns) }}{{ highlight .Subject $.Search }}{{ else }}{{ .Subject }}{{ end }}</td>
-                <td>{{ if (inSlice "Reason" $.SelectedColumns) }}{{ highlight .Reason $.Search }}{{ else }}{{ .Reason }}{{ end }}</td>
-                <td>{{ if (inSlice "Body" $.SelectedColumns) }}{{ highlight .Body $.Search }}{{ else }}{{ .Body }}{{ end }}</td>
-                <td>{{ if (inSlice "RegistrarId" $.SelectedColumns) }}{{ highlight .RegistrarId $.Search }}{{ else }}{{ .RegistrarId }}{{ end }}</td>
-                <td>{{ if (inSlice "Sent" $.SelectedColumns) }}{{ highlight .Sent $.Search }}{{ else }}{{ .Sent }}{{ end }}</td>
-                <td>{{ if (inSlice "Status" $.SelectedColumns) }}{{ highlight .Status $.Search }}{{ else }}{{ .Status }}{{ end }}</td>
-            </tr>
-        {{ else }}
-            <tr>
-                <td colspan="10">No emails found.</td>
-            </tr>
-        {{ end }}
-        </tbody>
-    </table>
+    <form action="/sendEmails" method="POST">
+        <input type="hidden" name="redirect_to" value="{{ .CurrentURL }}">
+    <button type="submit">Send selected</button>
+        <table>
+            <thead>
+                <tr>
+                    <th>
+                        <input type="checkbox" id="select-all">
+                    </th>
+                    <th>ID</th>
+                    <th>From</th>
+                    <th>To</th>
+                    <th>Date</th>
+                    <th>Subject</th>
+                    <th>Reason</th>
+                    <th>Body</th>
+                    <th>Registrar ID</th>
+                    <th>Sent</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+            {{ range .Emails }}
+                <tr>
+                    <td>
+                        <input type="checkbox" name="emailIDs" value="{{ .ID }}">
+                    </td>
+                    <td>{{ if (inSlice "ID" $.SelectedColumns) }}{{ highlight .ID $.Search }}{{ else }}{{ .ID }}{{ end }}</td>
+                    <td>{{ if (inSlice "From" $.SelectedColumns) }}{{ highlight .From $.Search }}{{ else }}{{ .From }}{{ end }}</td>
+                    <td>{{ if (inSlice "To" $.SelectedColumns) }}{{ highlight .To $.Search }}{{ else }}{{ .To }}{{ end }}</td>
+                    <td>{{ $formatted := formatDate .Date }}{{ if (inSlice "Date" $.SelectedColumns) }}{{ highlight $formatted $.Search }}{{ else }}{{ formatDate .Date }}{{ end }}</td>
+                    <td>{{ if (inSlice "Subject" $.SelectedColumns) }}{{ highlight .Subject $.Search }}{{ else }}{{ .Subject }}{{ end }}</td>
+                    <td>{{ if (inSlice "Reason" $.SelectedColumns) }}{{ highlight .Reason $.Search }}{{ else }}{{ .Reason }}{{ end }}</td>
+                    <td>{{ if (inSlice "Body" $.SelectedColumns) }}{{ highlight .Body $.Search }}{{ else }}{{ .Body }}{{ end }}</td>
+                    <td>{{ if (inSlice "RegistrarId" $.SelectedColumns) }}{{ highlight .RegistrarId $.Search }}{{ else }}{{ .RegistrarId }}{{ end }}</td>
+                    <td>{{ if (inSlice "Sent" $.SelectedColumns) }}{{ highlight .Sent $.Search }}{{ else }}{{ .Sent }}{{ end }}</td>
+                    <td>{{ if (inSlice "Status" $.SelectedColumns) }}{{ highlight .Status $.Search }}{{ else }}{{ .Status }}{{ end }}</td>
+                </tr>
+            {{ else }}
+                <tr>
+                    <td colspan="10">No emails found.</td>
+                </tr>
+            {{ end }}
+            </tbody>
+        </table>
+    </form>
+    <script>
+        document.getElementById('select-all').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('input[name="emailIDs"]');
+            checkboxes.forEach(cb => cb.checked = this.checked);
+        });
+    </script>
 </body>
 </html>
 {{ end }}

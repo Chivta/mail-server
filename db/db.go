@@ -98,6 +98,27 @@ func (db *DB) WriteEmail(email Email) error {
 	return nil
 }
 
+func (db *DB) GetEmailsByIds(IDs []int64) ([]Email, error) {
+	if len(IDs)==0{
+		return []Email{},nil
+	}
+
+	rows, err := db.conn.Query(`
+		SELECT * FROM email
+		WHERE id = ANY($1)
+		`, pq.Array(IDs))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	emails, err := fillEmailSlice(rows)
+	if err!= nil{
+		return nil, err
+	}
+	return emails,nil
+}
+
 func (db *DB) GetEmails(limit, offset int, search string, selectedColumns []string) ([]Email, error) {
 	if search == "" {
 		search = "%" // match all
@@ -134,21 +155,7 @@ func (db *DB) GetEmails(limit, offset int, search string, selectedColumns []stri
 	}
 	defer rows.Close()
 
-	var emails []Email
-	for rows.Next() {
-		var email Email
-		err = rows.Scan(
-			&email.ID, &email.From, &email.To, &email.Date,
-			&email.Subject, &email.Reason, &email.Body,
-			&email.RegistrarId, &email.Sent, &email.Status,
-		)
-		if err != nil {
-			return nil, err
-		}
-		emails = append(emails, email)
-	}
-
-	return emails, nil
+	return fillEmailSlice(rows)
 }
 
 
@@ -162,17 +169,22 @@ func (db *DB) GetUnsentEmails(limit, offset int) ([]Email,error){
 	if err!= nil{
 		return nil, err
 	}
+	defer rows.Close()
 	
+	return fillEmailSlice(rows)
+}
+
+func fillEmailSlice(rows *sql.Rows) ([]Email, error){
 	var emails []Email
 	var email Email
 	for rows.Next(){
-		err = rows.Scan(&email.ID,&email.From,&email.To,&email.Date,&email.Subject,&email.Reason,&email.Body,&email.RegistrarId,&email.Sent,&email.Status)
+		err := rows.Scan(&email.ID,&email.From,&email.To,&email.Date,&email.Subject,&email.Reason,&email.Body,&email.RegistrarId,&email.Sent,&email.Status)
 		if err!=nil{
 			return nil, err
 		}
 		emails = append(emails, email)
 	}
+	defer rows.Close()
 
 	return emails, nil
 }
-

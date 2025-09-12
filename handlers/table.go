@@ -83,6 +83,7 @@ type EmailPage struct {
 	Limit           int
 	Offset          int
 	SelectedColumns []string
+	CurrentURL		string
 }
 
 func (h *TableHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -141,6 +142,7 @@ func (h *TableHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Limit:           limit,
 		Offset:          offset,
 		SelectedColumns: selectedColumns,
+		CurrentURL:		 r.RequestURI,
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
